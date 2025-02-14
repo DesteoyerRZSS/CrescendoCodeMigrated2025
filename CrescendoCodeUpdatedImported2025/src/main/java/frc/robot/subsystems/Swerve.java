@@ -14,6 +14,7 @@ import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -62,11 +63,12 @@ public class Swerve extends SubsystemBase {
     poseEstimator = new SwerveDrivePoseEstimator(Constants.Swerve.swerveKinematics, getYaw(), getPositions(), new Pose2d());
     preciseTargeting = false;
     try {
-      layout = AprilTagFields.k2023ChargedUp.loadAprilTagLayoutField();
+      layout = AprilTagFieldLayout.loadField(AprilTagFields.k2025Reefscape);
       
     } catch (UncheckedIOException e) {
       System.out.println("April Tag Field Layout not Found");
     }
+    // AprilTagFieldLayout layout = AprilTagFieldLayout.loadField(AprilTagFields.k2025Reefscape);
     field = new Field2d();
     NetworkTable table = NetworkTableInstance.getDefault().getTable("TODO"); //TODO
     SmartDashboard.putData("Field", field);
@@ -145,8 +147,8 @@ public class Swerve extends SubsystemBase {
     Pose2d xy1 = getPose();
     Pose2d xy2 = end;
 
-    PIDController moveXController = new PIDController(0.001, 0, 0);
-    PIDController moveYController = new PIDController(0.001, 0, 0);
+    PIDController moveXController = new PIDController(2, 0, 0);
+    PIDController moveYController = new PIDController(2, 0, 0);
 
     double xDiff = xy2.getX() - xy1.getX();
     double yDiff = xy2.getY() - xy1.getY();
@@ -155,21 +157,25 @@ public class Swerve extends SubsystemBase {
 
     return run(
       () -> {
-        double xOutput = moveXController.calculate(xy2.getX() - xy1.getX());
-        double yOutput = moveYController.calculate(xy2.getY() - xy1.getY());
+        System.out.println("current x = " + getPose().getX());
+        System.out.println(xy2.getX() - getPose().getX());
+        double xOutput = moveXController.calculate(-1*xy2.getX() + getPose().getX());
+        double yOutput = moveYController.calculate(-1*xy2.getY() + getPose().getY());
         drive(new Translation2d(xOutput, yOutput), 0, false, true);
 
       }
     ).until(
       () -> (
-        (((Math.abs((xy2.getX() - xy1.getX())/xDiff)) < 0.05) && ((Math.abs((xy2.getY() - xy1.getY())/yDiff)) < 0.05))
+        (((Math.abs((xy2.getX() - getPose().getX()))) < 0.05) && ((Math.abs((xy2.getY() - getPose().getY()))) < 0.05))
       )).andThen(()->{preciseTargeting = false;});
 
     }
   
   // aims torwards an angle theta displaced from the heading of the robot
   public Command turnToAngle(Rotation2d theta){
+
     preciseTargeting = true;
+
     Rotation2d target = theta;
 
     PIDController turnController = new PIDController(0.255, 0.0001, 0);
@@ -189,7 +195,64 @@ public class Swerve extends SubsystemBase {
           (Math.abs(optimizeAngle(getYaw(), target)/totalDiff) < 0.05) 
       )).andThen(()->{preciseTargeting = false;});
   }
+  public Command turnToAngle_nearest_apriltag(double offset_length, boolean lr){
 
+    preciseTargeting = true;
+    long curr_tag_in_view = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tid").getInteger(0);
+    Pose3d target;
+    Rotation2d target_rotation;
+    double x, y;
+    System.out.println(curr_tag_in_view);
+    if (curr_tag_in_view >= 0){
+      target = layout.getTagPose((int)(curr_tag_in_view)).get();
+      target_rotation = target.getRotation().toRotation2d().plus(Rotation2d.fromDegrees(180));
+      double offset_x = offset_length * target_rotation.getCos();
+      double offset_y = offset_length * target_rotation.getCos();
+      if (lr){
+        x = target.getX() + offset_x;
+        y = target.getY() + offset_y;
+      }else{
+        x = target.getX() - offset_x;
+        y = target.getY() - offset_y;
+      }
+
+    }
+    else{
+      return runOnce(()->{System.out.println("no apriltags detected");});
+    }
+
+    PIDController turnController = new PIDController(0.255, 0.0001, 0);
+    PIDController moveXController = new PIDController(2, 0, 0);
+    PIDController moveYController = new PIDController(2, 0, 0);
+
+    double totalDiff = optimizeAngle(getYaw(), target_rotation);
+
+    return run(
+      () -> {
+        System.out.println("current angle = " + getYaw().getDegrees());
+        System.out.println(target_rotation.getDegrees() - getYaw().getDegrees());
+        double output = turnController.calculate(0);//optimizeAngle(getYaw(), target_rotation));
+        output = Math.min(output, 7);
+        System.out.print(output);
+
+
+        System.out.println("current x = " + getPose().getX());
+        System.out.println(x - getPose().getX());
+        double xOutput =  Math.min(moveXController.calculate(-1*x+ getPose().getX()), 4);
+        double yOutput = Math.min(moveYController.calculate(-1*y + getPose().getY()), 4);
+
+        drive(new Translation2d(xOutput, yOutput), output, false, true);
+        
+
+      }
+    ).until(
+      ()->(
+          // (Math.abs(optimizeAngle(getYaw(), target_rotation)/totalDiff) < 0.05) && 
+          ((Math.abs((x - getPose().getX()))) < 0.05) && 
+          ((Math.abs(y - getPose().getY()))) < 0.05)
+      ).andThen(()->{preciseTargeting = false;});
+  }
+  
   public double optimizeAngle(Rotation2d currentAngle, Rotation2d targetAngle){
     if(Math.abs(targetAngle.minus(currentAngle).getDegrees()) > 180){
       if((targetAngle.minus(currentAngle).getDegrees()) < 0){
@@ -248,6 +311,7 @@ public class Swerve extends SubsystemBase {
   public void update_odometry_and_pose(boolean tag_update){
     // swerveOdometry.update(getYaw(), getPositions());
     poseEstimator.update(getYaw(), getPositions());
+    System.out.println("tag update:" + tag_update);
     if (tag_update){
       boolean doRejectUpdate = false;
       LimelightHelpers.SetRobotOrientation("limelight", poseEstimator.getEstimatedPosition().getRotation().getDegrees(), 0, 0, 0, 0, 0);
@@ -275,6 +339,8 @@ public class Swerve extends SubsystemBase {
   public void periodic() {
     // boolean highAccuracy = SmartDashboard.getBoolean("highAccuracyTargeting", false);
     update_odometry_and_pose(preciseTargeting);
+    // System.out.println(getPose())
+    
     field.setRobotPose(getPose());
 
     for (SwerveModule mod : mSwerveMods) {
