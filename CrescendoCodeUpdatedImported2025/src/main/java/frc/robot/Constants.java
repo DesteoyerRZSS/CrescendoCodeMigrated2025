@@ -135,7 +135,7 @@ public final class Constants {
             public static final int driveMotorID = 15;
             public static final int angleMotorID = 14;
             public static final int canCoderID = 3;
-            public static final Rotation2d angleOffset = Rotation2d.fromDegrees(249.609375);//23.55//203.75
+            public static final Rotation2d angleOffset = Rotation2d.fromDegrees(245.309375);//23.55//203.75
             public static final SwerveModuleConstants constants =
                 new SwerveModuleConstants(driveMotorID, angleMotorID, canCoderID, angleOffset);
             }

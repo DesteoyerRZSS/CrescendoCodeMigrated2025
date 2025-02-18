@@ -201,13 +201,18 @@ public class Swerve extends SubsystemBase {
     long curr_tag_in_view = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tid").getInteger(0);
     Pose3d target;
     Rotation2d target_rotation;
+    Rotation2d turn_rotation;
     double x, y;
     System.out.println(curr_tag_in_view);
     if (curr_tag_in_view >= 0){
+      System.out.println("tag update:" + preciseTargeting);
       target = layout.getTagPose((int)(curr_tag_in_view)).get();
-      target_rotation = target.getRotation().toRotation2d().plus(Rotation2d.fromDegrees(180));
+      target_rotation = target.getRotation().toRotation2d().plus(Rotation2d.fromDegrees(0));
+      turn_rotation = target.getRotation().toRotation2d().plus(Rotation2d.fromDegrees(180));
       double offset_x = offset_length * target_rotation.getCos();
       double offset_y = offset_length * target_rotation.getCos();
+      // offset_x += 0.5 * target_rotation.plus(Rotation2d.fromDegrees(-90)).getCos();
+      offset_y += 0.5 * target_rotation.plus(Rotation2d.fromDegrees(-90)).getSin();
       if (lr){
         x = target.getX() + offset_x;
         y = target.getY() + offset_y;
@@ -225,32 +230,33 @@ public class Swerve extends SubsystemBase {
     PIDController moveXController = new PIDController(2, 0, 0);
     PIDController moveYController = new PIDController(2, 0, 0);
 
-    double totalDiff = optimizeAngle(getYaw(), target_rotation);
+    double totalDiff = optimizeAngle(getYaw(), turn_rotation);
 
     return run(
       () -> {
         System.out.println("current angle = " + getYaw().getDegrees());
-        System.out.println(target_rotation.getDegrees() - getYaw().getDegrees());
-        double output = turnController.calculate(0);//optimizeAngle(getYaw(), target_rotation));
+        System.out.println(turn_rotation.getDegrees() - getYaw().getDegrees());
+        double output = turnController.calculate(optimizeAngle(getYaw(), turn_rotation));
         output = Math.min(output, 7);
+        output = 0;
         System.out.print(output);
 
 
         System.out.println("current x = " + getPose().getX());
         System.out.println(x - getPose().getX());
-        double xOutput =  Math.min(moveXController.calculate(-1*x+ getPose().getX()), 4);
-        double yOutput = Math.min(moveYController.calculate(-1*y + getPose().getY()), 4);
-
+        double xOutput =  Math.min(moveXController.calculate(-1*x+ getPose().getX()), 2);
+        double yOutput = Math.min(moveYController.calculate(-1*y + getPose().getY()), 2);
+        
         drive(new Translation2d(xOutput, yOutput), output, false, true);
         
 
       }
     ).until(
       ()->(
-          // (Math.abs(optimizeAngle(getYaw(), target_rotation)/totalDiff) < 0.05) && 
+          // (Math.abs(optimizeAngle(getYaw(), turn_rotation)/totalDiff) < 0.05) && 
           ((Math.abs((x - getPose().getX()))) < 0.05) && 
           ((Math.abs(y - getPose().getY()))) < 0.05)
-      ).andThen(()->{preciseTargeting = false;});
+      ) .andThen(()->{preciseTargeting = false;});
   }
   
   public double optimizeAngle(Rotation2d currentAngle, Rotation2d targetAngle){
@@ -304,19 +310,19 @@ public class Swerve extends SubsystemBase {
   }
 
   public Rotation2d getYaw() {
-    return Rotation2d.fromDegrees(gyro1.getAngle() * (Constants.Swerve.invertGyro ? 1 : -1));
+    return Rotation2d.fromDegrees(-1*gyro1.getYaw().getValueAsDouble() * (Constants.Swerve.invertGyro ? 1 : -1));
 
   }
 
   public void update_odometry_and_pose(boolean tag_update){
     // swerveOdometry.update(getYaw(), getPositions());
     poseEstimator.update(getYaw(), getPositions());
-    System.out.println("tag update:" + tag_update);
+    
     if (tag_update){
       boolean doRejectUpdate = false;
       LimelightHelpers.SetRobotOrientation("limelight", poseEstimator.getEstimatedPosition().getRotation().getDegrees(), 0, 0, 0, 0, 0);
       LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight");
-      if(Math.abs(gyro1.getRate()) > 720) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
+      if(Math.abs(-1*gyro1.getYaw().getValueAsDouble()) > 720) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
       {
         doRejectUpdate = true;
       }
@@ -337,8 +343,24 @@ public class Swerve extends SubsystemBase {
   
   @Override
   public void periodic() {
+    // if (preciseTargeting == false){System.out.println("tag update:" + preciseTargeting);}
     // boolean highAccuracy = SmartDashboard.getBoolean("highAccuracyTargeting", false);
     update_odometry_and_pose(preciseTargeting);
+    // long curr_tag_in_view = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tid").getInteger(0);
+    // Pose3d target;
+    // Rotation2d target_rotation;
+    // if (curr_tag_in_view >= 0){
+    //   target = layout.getTagPose((int)(curr_tag_in_view)).get();
+    //   target_rotation = target.getRotation().toRotation2d().plus(Rotation2d.fromDegrees(0));
+    //   double offset_x = 1 * target_rotation.getCos();
+    //   double offset_y = 1 * target_rotation.getCos();
+    //   if (true){
+    //     double x = target.getX() + offset_x;
+    //     double y = target.getY() + offset_y;
+    //     System.out.println("before: "+ target.getX() +"," + target.getY());
+    //     System.out.println("after: "+ x +"," + y);
+    //   }
+    // }
     // System.out.println(getPose())
     
     field.setRobotPose(getPose());
