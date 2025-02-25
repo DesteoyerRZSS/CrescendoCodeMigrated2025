@@ -110,9 +110,9 @@ public class RobotContainer {
     //aim.whileTrue(aimCommand);
     driver.y().onTrue(new InstantCommand(() -> s_Swerve.zeroGyro()));
     second.y().whileTrue(fwheel.ampShot());
-    driver.b().onTrue(s_Swerve.turnToAngle_nearest_apriltag(0.5, true));
+    driver.b().onTrue(s_Swerve.turnToAngle_nearest_apriltag(0, true));
     // driver.b().onTrue(s_Swerve.moveTo(new Pose2d(s_Swerve.getPose().getX()+1, s_Swerve.getPose().getY(), s_Swerve.getPose().getRotation())));
-    driver.x().whileFalse(new InstantCommand(()-> {System.out.println(note); note=false;}));
+    driver.x().onTrue(new InstantCommand(()->s_Swerve.resetWheels()));
     second.rightTrigger(0.3).whileTrue(intake.Out());
     second.leftTrigger(0.3).whileTrue(fwheel.moveTo(flywheel.SPEAKER, flywheel.SPEAKER, false, ()->driver.leftTrigger(0.3).getAsBoolean(), note));
     //second.leftTrigger(0.3).whileTrue(fwheel.speakerShot());
