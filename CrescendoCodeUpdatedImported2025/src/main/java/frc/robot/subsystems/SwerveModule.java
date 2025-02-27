@@ -2,6 +2,7 @@ package frc.robot.subsystems;
 
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.hardware.CANcoder;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 import com.revrobotics.spark.ClosedLoopSlot;
 import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkBase.PersistMode;
@@ -79,7 +80,23 @@ public class SwerveModule {
 
   public void resetToAbsolute() {
     double absolutePosition = getCanCoder().getDegrees() - angleOffset.getDegrees();
-    integratedAngleEncoder.setPosition(absolutePosition);
+    System.out.println(moduleNumber + "set to "+ absolutePosition);
+
+    integratedAngleEncoder.setPosition(360-getCanCoder().getDegrees()+angleOffset.getDegrees());
+    
+  }
+  private double optimizeAngle(Rotation2d currentAngle, Rotation2d targetAngle){
+    if(Math.abs(targetAngle.minus(currentAngle).getDegrees()) > 180){
+      if((targetAngle.minus(currentAngle).getDegrees()) < 0){
+        return ((targetAngle.minus(currentAngle).getDegrees()) + 360);
+      }
+      else{
+        return ((targetAngle.minus(currentAngle).getDegrees()) - 360);
+      }
+    }else{
+      return targetAngle.minus(currentAngle).getDegrees();
+    }
+    
   }
 
   private void configAngleEncoder() {

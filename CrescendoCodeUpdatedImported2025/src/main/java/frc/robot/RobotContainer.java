@@ -34,7 +34,7 @@ public class RobotContainer {
   // The robot's subsystems and commands
   //private final Joystick driver = new Joystick(1);
   private final CommandXboxController driver = new CommandXboxController(1);
-  private final CommandXboxController second = new CommandXboxController(0);
+  //private final CommandXboxController second = new CommandXboxController(0);
   //private final int translationAxis = XboxController.Axis.kLeftY.value;
   //private final int strafeAxis = XboxController.Axis.kLeftX.value;
   //private final int rotationAxis = XboxController.Axis.kRightX.value;
@@ -109,18 +109,18 @@ public class RobotContainer {
   private void configureButtonBindings() {
     //aim.whileTrue(aimCommand);
     driver.y().onTrue(new InstantCommand(() -> s_Swerve.zeroGyro()));
-    second.y().whileTrue(fwheel.ampShot());
+    //second.y().whileTrue(fwheel.ampShot());
     driver.b().onTrue(s_Swerve.turnToAngle_nearest_apriltag(0, true));
     // driver.b().onTrue(s_Swerve.moveTo(new Pose2d(s_Swerve.getPose().getX()+1, s_Swerve.getPose().getY(), s_Swerve.getPose().getRotation())));
-    driver.x().onTrue(new InstantCommand(()->s_Swerve.resetWheels()));
-    second.rightTrigger(0.3).whileTrue(intake.Out());
-    second.leftTrigger(0.3).whileTrue(fwheel.moveTo(flywheel.SPEAKER, flywheel.SPEAKER, false, ()->driver.leftTrigger(0.3).getAsBoolean(), note));
+    driver.x().onTrue(new InstantCommand(()->s_Swerve.setAbsolute()));
+    //second.rightTrigger(0.3).whileTrue(intake.Out());
+    //second.leftTrigger(0.3).whileTrue(fwheel.moveTo(flywheel.SPEAKER, flywheel.SPEAKER, false, ()->driver.leftTrigger(0.3).getAsBoolean(), note));
     //second.leftTrigger(0.3).whileTrue(fwheel.speakerShot());
-    second.a().whileTrue(intake.In());
+    //second.a().whileTrue(intake.In());
 
-    second.x().whileTrue(intake.moveTo(Constants.Swerve.intake.IDLE, false));
+    //second.x().whileTrue(intake.moveTo(Constants.Swerve.intake.IDLE, false));
     //second.y().whileTrue(intake.moveTo(Constants.Swerve.intake.AMPSHOT, false));
-    second.b().whileTrue(intake.moveTo(Constants.Swerve.intake.INTAKE, true));
+    //second.b().whileTrue(intake.moveTo(Constants.Swerve.intake.INTAKE, true));
     
   }
   /**
