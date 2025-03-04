@@ -1,7 +1,7 @@
 package frc.robot.subsystems;
 
 import java.io.UncheckedIOException;
-
+import java.util.List;
 
 import com.ctre.phoenix6.configs.Pigeon2Configuration;
 import com.ctre.phoenix6.hardware.Pigeon2;
@@ -21,6 +21,7 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.math.trajectory.Trajectory;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.networktables.NetworkTable;
@@ -48,7 +49,10 @@ public class Swerve extends SubsystemBase {
   private AprilTagFieldLayout layout;
   private NetworkTable table;
   private boolean preciseTargeting;
+  private long curr_tag_in_view;
+  private long is_tag_present;
   public Swerve(/*PhotonCamera cam*/) {
+    curr_tag_in_view = -1;
     // this.cam = cam;
     gyro1 = new Pigeon2(5);
     gyro1.getConfigurator().apply(new Pigeon2Configuration());
@@ -195,10 +199,10 @@ public class Swerve extends SubsystemBase {
           (Math.abs(optimizeAngle(getYaw(), target)/totalDiff) < 0.05) 
       )).andThen(()->{preciseTargeting = false;});
   }
-  public Command turnToAngle_nearest_apriltag(double offset_length, boolean lr){
+  public Command turnToAngle_nearest_apriltag(){
 
     preciseTargeting = true;
-    long curr_tag_in_view = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tid").getInteger(0);
+    long curr_tag_in_view = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tid").getInteger(-1);
     Pose3d target;
     Rotation2d target_rotation;
     Rotation2d turn_rotation;
@@ -208,18 +212,7 @@ public class Swerve extends SubsystemBase {
       System.out.println("tag update:" + preciseTargeting);
       target = layout.getTagPose((int)(curr_tag_in_view)).get();
       target_rotation = target.getRotation().toRotation2d().plus(Rotation2d.fromDegrees(0));
-      turn_rotation = target.getRotation().toRotation2d().plus(Rotation2d.fromDegrees(180));
-      double offset_x = offset_length * target_rotation.getCos();
-      double offset_y = offset_length * target_rotation.getCos();
-      // offset_x += 0.5 * target_rotation.plus(Rotation2d.fromDegrees(-90)).getCos();
-      offset_y += 0.5 * target_rotation.plus(Rotation2d.fromDegrees(-90)).getSin();
-      if (lr){
-        x = target.getX() + offset_x;
-        y = target.getY() + offset_y;
-      }else{
-        x = target.getX() - offset_x;
-        y = target.getY() - offset_y;
-      }
+      turn_rotation = target.getRotation().toRotation2d().plus(Rotation2d.fromDegrees(-135));
 
     }
     else{
@@ -227,36 +220,91 @@ public class Swerve extends SubsystemBase {
     }
 
     PIDController turnController = new PIDController(0.255, 0.0001, 0);
-    PIDController moveXController = new PIDController(2, 0, 0);
-    PIDController moveYController = new PIDController(2, 0, 0);
 
     double totalDiff = optimizeAngle(getYaw(), turn_rotation);
-
+    
     return run(
       () -> {
-        System.out.println("current angle = " + getYaw().getDegrees());
+        System.out.println("curr pose: " + getYaw().getDegrees() + " desired: " + turn_rotation.getDegrees() );
         System.out.println(turn_rotation.getDegrees() - getYaw().getDegrees());
         double output = turnController.calculate(optimizeAngle(getYaw(), turn_rotation));
         output = Math.min(output, 7);
-        output = 0;
         System.out.print(output);
-
-
-        System.out.println("current x = " + getPose().getX());
-        System.out.println(x - getPose().getX());
-        double xOutput =  Math.min(moveXController.calculate(-1*x+ getPose().getX()), 2);
-        double yOutput = Math.min(moveYController.calculate(-1*y + getPose().getY()), 2);
-        
-        drive(new Translation2d(xOutput, yOutput), output, false, true);
+      
+        drive(new Translation2d(0,0), output, false, true);
         
 
       }
     ).until(
       ()->(
-          // (Math.abs(optimizeAngle(getYaw(), turn_rotation)/totalDiff) < 0.05) && 
-          ((Math.abs((x - getPose().getX()))) < 0.05) && 
-          ((Math.abs(y - getPose().getY()))) < 0.05)
-      ) .andThen(()->{preciseTargeting = false;});
+          (Math.abs(optimizeAngle(getYaw(), turn_rotation)/totalDiff) < 0.05) 
+      )).andThen(()->{preciseTargeting = false;});
+  }
+  public double[] get_xy_from_tag(Pose3d layoutpose3d, double offset){
+    Rotation2d target_rotation = layoutpose3d.getRotation().toRotation2d().plus(Rotation2d.fromDegrees(0));
+    double offset_x = offset * target_rotation.getCos();
+    double offset_y = offset * target_rotation.getCos();
+    // offset_x += 0.5 * target_rotation.plus(Rotation2d.fromDegrees(-90)).getCos();
+    offset_y += 0.5 * target_rotation.plus(Rotation2d.fromDegrees(-90)).getSin();
+    double x = layoutpose3d.getX() + offset_x;
+    double y = layoutpose3d.getY() + offset_y;
+    return new double[]{x, y};
+  }
+  public void togglePreciseTargeting(boolean val){
+    preciseTargeting = val;
+  }
+  public Command move_to_nearest_apriltag(double offset_length){
+    
+    // if (is_tag_present != 0){
+    //   System.out.println("tag update:" + preciseTargeting);
+    //   target = layout.getTagPose((int)(curr_tag_in_view)).get();
+    //   target_rotation = target.getRotation().toRotation2d().plus(Rotation2d.fromDegrees(0));
+    //   double offset_x = offset_length * target_rotation.getCos();
+    //   double offset_y = offset_length * target_rotation.getCos();
+    //   // offset_x += 0.5 * target_rotation.plus(Rotation2d.fromDegrees(-90)).getCos();
+    //   offset_y += 0.5 * target_rotation.plus(Rotation2d.fromDegrees(-90)).getSin();
+    //   if (lr){
+    //     x = target.getX() + offset_x;
+    //     y = target.getY() + offset_y;
+    //   }else{
+    //     x = target.getX() - offset_x;
+    //     y = target.getY() - offset_y;
+    //   }
+
+    // }
+    // else{
+    //   return runOnce(()->{System.out.println("no apriltags detected");});
+    // }
+
+    PIDController moveXController = new PIDController(0.5, 0, 0);
+    PIDController moveYController = new PIDController(0.5, 0, 0);
+    return run(
+      () -> {
+        preciseTargeting = true;
+        curr_tag_in_view = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tid").getInteger(-1);
+        double[] xy;
+        if (curr_tag_in_view >= 0){
+          xy = get_xy_from_tag(layout.getTagPose((int)(curr_tag_in_view)).get(), offset_length);
+        }
+        else{
+          xy = new double[]{getPose().getX(), getPose().getY()};
+          System.out.println("no apriltag");
+        }
+        double x = xy[0];
+        double y = xy[1];
+        System.out.println(curr_tag_in_view);
+        System.out.println("current x = " + getPose().getX());
+        System.out.println(x - getPose().getX());
+        double xOutput = Math.min(moveXController.calculate(-1*x+ getPose().getX()), 2);
+        double yOutput = Math.min(moveYController.calculate(-1*y + getPose().getY()), 2);
+        drive(new Translation2d(xOutput, yOutput), 0, true, true);
+      }
+    ).until(
+      ()->(
+        ((Math.abs(get_xy_from_tag(layout.getTagPose((int)(curr_tag_in_view)).get(), offset_length)[0] - getPose().getX())) < 0.05) && 
+        ((Math.abs(get_xy_from_tag(layout.getTagPose((int)(curr_tag_in_view)).get(), offset_length)[1] - getPose().getY())) < 0.05)
+        )
+    ).andThen(()->{preciseTargeting = false;});
   }
   
   public double optimizeAngle(Rotation2d currentAngle, Rotation2d targetAngle){
@@ -318,9 +366,13 @@ public class Swerve extends SubsystemBase {
     // swerveOdometry.update(getYaw(), getPositions());
     poseEstimator.update(getYaw(), getPositions());
     
+    
     if (tag_update){
       boolean doRejectUpdate = false;
+      
+      //Pose2d tag2dpose = layout.getTagPose((int)(curr_tag_in_view)).get().toPose2d();
       LimelightHelpers.SetRobotOrientation("limelight", poseEstimator.getEstimatedPosition().getRotation().getDegrees(), 0, 0, 0, 0, 0);
+      //field.getObject("traj").setPoses(tag2dpose);
       LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight");
       if(Math.abs(-1*gyro1.getYaw().getValueAsDouble()) > 720) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
       {
@@ -362,7 +414,9 @@ public class Swerve extends SubsystemBase {
     //   }
     // }
     // System.out.println(getPose())
-    
+    curr_tag_in_view = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tid").getInteger(-1);
+    is_tag_present = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tv").getInteger(0);
+    // System.out.println(curr_tag_in_view);
     field.setRobotPose(getPose());
 
     for (SwerveModule mod : mSwerveMods) {

@@ -19,11 +19,12 @@ import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.commands.TeleopSwerve;
-//import frc.robot.commands.aimAtTarget;
+import frc.robot.commands.moveToNearestApriltagCommand;
 import frc.robot.subsystems.Swerve;
 import frc.robot.subsystems.Flywheel;
 import frc.robot.subsystems.Intake;
 import frc.robot.Constants.Swerve.flywheel;
+
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
  * "declarative" paradigm, very little robot logic should actually be handled in the {@link Robot}
@@ -60,7 +61,7 @@ public class RobotContainer {
   private final Swerve s_Swerve = new Swerve();
   private final Intake intake = new Intake();  
   //private final aimAtTarget aimCommand = new aimAtTarget(cam, s_Swerve, s_Swerve::getPose);
-
+  private final moveToNearestApriltagCommand translateApriltag = new moveToNearestApriltagCommand(s_Swerve, s_Swerve::getPose, 0);
     /* The container for the robot. subsystems, OI devices, and commands. */
   public RobotContainer() {
     // NamedCommands.registerCommand("Launch", intake.Out().withTimeout(0.2));
@@ -95,7 +96,7 @@ public class RobotContainer {
     // Configure the button bindings
     configureButtonBindings();
     
-  }
+  } 
 
   //robotCentric.get();
   /**
@@ -110,7 +111,7 @@ public class RobotContainer {
     //aim.whileTrue(aimCommand);
     driver.y().onTrue(new InstantCommand(() -> s_Swerve.zeroGyro()));
     //second.y().whileTrue(fwheel.ampShot());
-    driver.b().onTrue(s_Swerve.turnToAngle_nearest_apriltag(0, true));
+    driver.b().onTrue(translateApriltag);
     // driver.b().onTrue(s_Swerve.moveTo(new Pose2d(s_Swerve.getPose().getX()+1, s_Swerve.getPose().getY(), s_Swerve.getPose().getRotation())));
     driver.x().onTrue(new InstantCommand(()->s_Swerve.setAbsolute()));
     //second.rightTrigger(0.3).whileTrue(intake.Out());
