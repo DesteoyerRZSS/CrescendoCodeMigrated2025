@@ -19,6 +19,7 @@ import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.commands.TeleopSwerve;
+import frc.robot.commands.TurnToNearestApriltagCommand;
 import frc.robot.commands.moveToNearestApriltagCommand;
 import frc.robot.subsystems.Swerve;
 import frc.robot.subsystems.Flywheel;
@@ -62,6 +63,7 @@ public class RobotContainer {
   private final Intake intake = new Intake();  
   //private final aimAtTarget aimCommand = new aimAtTarget(cam, s_Swerve, s_Swerve::getPose);
   private final moveToNearestApriltagCommand translateApriltag = new moveToNearestApriltagCommand(s_Swerve, s_Swerve::getPose, 0.5);
+  private final TurnToNearestApriltagCommand turnApriltag = new TurnToNearestApriltagCommand(s_Swerve, s_Swerve::getPose);
     /* The container for the robot. subsystems, OI devices, and commands. */
   public RobotContainer() {
     // NamedCommands.registerCommand("Launch", intake.Out().withTimeout(0.2));
@@ -111,7 +113,7 @@ public class RobotContainer {
     //aim.whileTrue(aimCommand);
     driver.y().onTrue(new InstantCommand(() -> s_Swerve.zeroGyro()));
     //second.y().whileTrue(fwheel.ampShot());
-    driver.b().onTrue(translateApriltag);
+    driver.b().onTrue(turnApriltag.andThen(translateApriltag));
     // driver.b().onTrue(s_Swerve.moveTo(new Pose2d(s_Swerve.getPose().getX()+1, s_Swerve.getPose().getY(), s_Swerve.getPose().getRotation())));
     driver.x().onTrue(new InstantCommand(()->s_Swerve.setAbsolute()));
     //second.rightTrigger(0.3).whileTrue(intake.Out());
