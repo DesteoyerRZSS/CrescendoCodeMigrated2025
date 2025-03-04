@@ -21,7 +21,7 @@ public class moveToNearestApriltagCommand extends Command{
     private final Supplier<Pose2d> poseProvider;
     private final PIDController moveXController = new PIDController(0.5, 0, 0);
     private final PIDController moveYController = new PIDController(0.5, 0, 0);
-    private final AprilTagFieldLayout layout = AprilTagFieldLayout.loadField(AprilTagFields.k2025Reefscape);
+    private final AprilTagFieldLayout layout = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeAndyMark);
     private final double amount_offset;
     private boolean isDone;
     private double x;

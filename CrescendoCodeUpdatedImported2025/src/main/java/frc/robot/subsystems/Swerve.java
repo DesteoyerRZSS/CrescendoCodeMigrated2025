@@ -67,7 +67,7 @@ public class Swerve extends SubsystemBase {
     poseEstimator = new SwerveDrivePoseEstimator(Constants.Swerve.swerveKinematics, getYaw(), getPositions(), new Pose2d());
     preciseTargeting = false;
     try {
-      layout = AprilTagFieldLayout.loadField(AprilTagFields.k2025Reefscape);
+      layout = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeAndyMark);
       
     } catch (UncheckedIOException e) {
       System.out.println("April Tag Field Layout not Found");
