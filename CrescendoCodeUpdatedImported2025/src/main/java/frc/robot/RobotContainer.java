@@ -61,7 +61,7 @@ public class RobotContainer {
   private final Swerve s_Swerve = new Swerve();
   private final Intake intake = new Intake();  
   //private final aimAtTarget aimCommand = new aimAtTarget(cam, s_Swerve, s_Swerve::getPose);
-  private final moveToNearestApriltagCommand translateApriltag = new moveToNearestApriltagCommand(s_Swerve, s_Swerve::getPose, 0);
+  private final moveToNearestApriltagCommand translateApriltag = new moveToNearestApriltagCommand(s_Swerve, s_Swerve::getPose, 0.5);
     /* The container for the robot. subsystems, OI devices, and commands. */
   public RobotContainer() {
     // NamedCommands.registerCommand("Launch", intake.Out().withTimeout(0.2));

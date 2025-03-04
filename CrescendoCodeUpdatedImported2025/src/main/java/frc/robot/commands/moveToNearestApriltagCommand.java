@@ -19,8 +19,8 @@ import frc.robot.subsystems.*;
 public class moveToNearestApriltagCommand extends Command{
     private final Swerve s_Swerve;
     private final Supplier<Pose2d> poseProvider;
-    private final PIDController moveXController = new PIDController(0.5, 0, 0);
-    private final PIDController moveYController = new PIDController(0.5, 0, 0);
+    private final PIDController moveXController = new PIDController(2, 0, 0);
+    private final PIDController moveYController = new PIDController(2, 0, 0);
     private final AprilTagFieldLayout layout = AprilTagFieldLayout.loadField(AprilTagFields.k2025Reefscape);
     private final double amount_offset;
     private boolean isDone;
@@ -71,6 +71,12 @@ public class moveToNearestApriltagCommand extends Command{
         double xOutput = Math.min(moveXController.calculate(-1*delx), 2);
         double yOutput = Math.min(moveYController.calculate(-1*dely), 2);
         s_Swerve.drive(new Translation2d(xOutput, yOutput), 0, true, true);
+        if (delx < 0.05 && dely < 0.05){
+            isDone = true;
+        }
+        else{
+            isDone = false;
+        }
         
     }
     @Override
