@@ -7,6 +7,7 @@ import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -20,8 +21,8 @@ import frc.robot.subsystems.*;
 public class moveToOffset extends Command{
     private final Swerve s_Swerve;
     private final Supplier<Pose2d> poseProvider;
-    private final PIDController moveXController = new PIDController(2, 0, 0);
-    private final PIDController moveYController = new PIDController(2, 0, 0);
+    private final PIDController moveXController = new PIDController(2.1, 0, 0);
+    private final PIDController moveYController = new PIDController(2.1, 0, 0);
     private final AprilTagFieldLayout layout = AprilTagFieldLayout.loadField(AprilTagFields.k2025Reefscape);
     private boolean isDone;
     private double x;
@@ -40,7 +41,7 @@ public class moveToOffset extends Command{
     
     @Override
     public void initialize() {
-        isDone = false;
+        isDone = true;
         s_Swerve.togglePreciseTargeting(true);
         curr_tag_in_view = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tid").getInteger(-1);
 
@@ -55,13 +56,22 @@ public class moveToOffset extends Command{
                 tag_pose = layout.getTagPose((int)(curr_tag_in_view)).get().toPose2d();
 
             }
-            double diff_x = roboPose.getX() - tag_pose.getX();
-            double diff_y = roboPose.getY() - tag_pose.getY();
+            double tag_x = tag_pose.getX();
+            double tag_y = tag_pose.getY();
+            Rotation2d tag_theta = tag_pose.getRotation().times(1);
+            double forward_offset = 2;
+            double lateral_offset = 0;
+            double x_offset = tag_x + forward_offset * tag_theta.getSin() - lateral_offset * tag_theta.getCos();
+            double y_offset = tag_y + forward_offset * tag_theta.getCos() + lateral_offset * tag_theta.getSin();
+            double diff_x = roboPose.getX() - x_offset;
+            double diff_y = roboPose.getY() - y_offset;
             System.out.println("x_diff"+ diff_x + "y_dff" + diff_y + "angle" + roboPose.getRotation().minus(tag_pose.getRotation()).getDegrees());
 
-            // System.out.println("HEEEYEEYYEYEYE: " + diff_x + "and"+ diff_y);
-            x = tag_pose.getX();
-            y = tag_pose.getY();
+            // System.out.println("HEEEYEEYYEYEYE: " + diff_x + "and"+ diff_y)
+            x = x_offset;
+            y = y_offset;
+            // x = tag_pose.getX();
+            // y = tag_pose.getY();
 
         }
         
@@ -79,10 +89,10 @@ public class moveToOffset extends Command{
         double dely = y - robotPose2d.getY();
         System.out.println("ID: "+ curr_tag_in_view + " diff x: " + delx + " diff y: " + dely);
         // Output Volts is capped at 2 to prevent brownout
-        double xOutput = Math.min(moveXController.calculate(-1*delx), 1);
-        double yOutput = Math.min(moveYController.calculate(-1*dely), 1);
+        double xOutput = Math.min(moveXController.calculate(-1*delx), 3);
+        double yOutput = Math.min(moveYController.calculate(-1*dely), 3);
         s_Swerve.drive(new Translation2d(xOutput, yOutput), 0, true, true);
-        if (Math.abs(delx) < 0.05 && Math.abs(dely) < 0.05){
+        if (Math.abs(delx) < 0.03 && Math.abs(dely) < 0.03){
             isDone = true;
         }
         else{

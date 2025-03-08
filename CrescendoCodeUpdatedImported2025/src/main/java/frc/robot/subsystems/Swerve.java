@@ -311,6 +311,7 @@ public class Swerve extends SubsystemBase {
 
   public void update_odometry_and_pose(boolean tag_update){
     // swerveOdometry.update(getYaw(), getPositions());
+    tag_update = true; //TODO remove later
     poseEstimator.update(getYaw(), getPositions());
     
     
