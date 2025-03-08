@@ -398,6 +398,14 @@ public class Swerve extends SubsystemBase {
     // if (preciseTargeting == false){System.out.println("tag update:" + preciseTargeting);}
     // boolean highAccuracy = SmartDashboard.getBoolean("highAccuracyTargeting", false);
     update_odometry_and_pose(preciseTargeting);
+    // if (NetworkTableInstance.getDefault().getTable("limelight").getEntry("tid").getInteger(-1) > 0){
+    //   System.out.println("Rotation relative: " + LimelightHelpers.getBotPose3d_TargetSpace("limelight").getRotation().toRotation2d().getDegrees());
+    // }
+    // else{
+    //   System.out.println("no tag");
+    // }
+
+
     // long curr_tag_in_view = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tid").getInteger(0);
     // Pose3d target;
     // Rotation2d target_rotation;

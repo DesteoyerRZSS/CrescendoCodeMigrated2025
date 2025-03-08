@@ -13,6 +13,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 // import com.pathplanner.lib.commands.PathPlannerAuto;
 
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
 
@@ -21,6 +22,8 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.commands.TeleopSwerve;
 import frc.robot.commands.TurnToNearestApriltagCommand;
 import frc.robot.commands.moveToNearestApriltagCommand;
+import frc.robot.commands.moveToNearestApriltagTargetR;
+import frc.robot.commands.moveToOffset;
 import frc.robot.subsystems.Swerve;
 import frc.robot.subsystems.Flywheel;
 import frc.robot.subsystems.Intake;
@@ -53,7 +56,7 @@ public class RobotContainer {
     new JoystickButton(driver, XboxController.Button.kB.value);
   private final JoystickButton lolintake =
     new JoystickButton(driver, XboxController.Button.kRightBumper.value);
-  private final JoystickButton slow = 
+  private final JoystickButton slow =0.1
     new JoystickButton(driver, XboxController.Button.kLeftBumper.value);*/
   private final Flywheel fwheel = new Flywheel();
   // private final PhotonCamera cam = new PhotonCamera("Global_Shutter_Camera");
@@ -62,7 +65,8 @@ public class RobotContainer {
   private final Swerve s_Swerve = new Swerve();
   private final Intake intake = new Intake();  
   //private final aimAtTarget aimCommand = new aimAtTarget(cam, s_Swerve, s_Swerve::getPose);
-  private final moveToNearestApriltagCommand translateApriltag = new moveToNearestApriltagCommand(s_Swerve, s_Swerve::getPose, 0.5);
+  private final moveToNearestApriltagCommand translateApriltag = new moveToNearestApriltagCommand(s_Swerve, s_Swerve::getPose, 0);
+  private final moveToNearestApriltagTargetR translateApriltag2 = new moveToNearestApriltagTargetR(s_Swerve, s_Swerve::getPose, 1);
   private final TurnToNearestApriltagCommand turnApriltag = new TurnToNearestApriltagCommand(s_Swerve, s_Swerve::getPose);
     /* The container for the robot. subsystems, OI devices, and commands. */
   public RobotContainer() {
@@ -113,7 +117,8 @@ public class RobotContainer {
     //aim.whileTrue(aimCommand);
     driver.y().onTrue(new InstantCommand(() -> s_Swerve.zeroGyro()));
     //second.y().whileTrue(fwheel.ampShot());
-    driver.b().onTrue(turnApriltag.andThen(translateApriltag));
+    driver.b().onTrue(new moveToOffset(s_Swerve, s_Swerve::getPose));
+    
     // driver.b().onTrue(s_Swerve.moveTo(new Pose2d(s_Swerve.getPose().getX()+1, s_Swerve.getPose().getY(), s_Swerve.getPose().getRotation())));
     driver.x().onTrue(new InstantCommand(()->s_Swerve.setAbsolute()));
     //second.rightTrigger(0.3).whileTrue(intake.Out());

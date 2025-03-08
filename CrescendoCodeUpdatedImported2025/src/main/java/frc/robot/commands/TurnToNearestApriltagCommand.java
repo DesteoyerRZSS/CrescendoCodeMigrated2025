@@ -21,7 +21,7 @@ import frc.robot.subsystems.*;
 public class TurnToNearestApriltagCommand extends Command{
     private final Swerve s_Swerve;
     private final Supplier<Pose2d> poseProvider;
-    private final PIDController moveThetaController = new PIDController(.07, 0, 0);
+    private final PIDController moveThetaController = new PIDController(0.5, 0, 0); //kp used to be 0.07
     private final AprilTagFieldLayout layout = AprilTagFieldLayout.loadField(AprilTagFields.k2025Reefscape);
     private boolean isDone;
     private double theta;
@@ -31,7 +31,7 @@ public class TurnToNearestApriltagCommand extends Command{
         Supplier<Pose2d> poseProvider) {
         this.s_Swerve= s_Swerve;
         this.poseProvider = poseProvider;
-        moveThetaController.setTolerance(0.05);
+        // moveThetaController.setTolerance(0.05);
         moveThetaController.enableContinuousInput(-180, 180);
         addRequirements(s_Swerve);
     }
@@ -39,8 +39,9 @@ public class TurnToNearestApriltagCommand extends Command{
     @Override
     public void initialize() {
         s_Swerve.togglePreciseTargeting(true);
-        var roboPose = poseProvider.get();
-        curr_tag_in_view = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tid").getInteger(-1);
+        // var roboPose = poseProvider.get();
+        var robot_rot = LimelightHelpers.getBotPose3d_TargetSpace("limelight").getRotation().toRotation2d().getDegrees();
+        // curr_tag_in_view = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tid").getInteger(-1);
         // End if currtaginview is not valid
         if (curr_tag_in_view < 0){
             System.out.println("No apriltag");
@@ -48,26 +49,30 @@ public class TurnToNearestApriltagCommand extends Command{
         }
         else{
             
-            theta = layout.getTagPose((int)(curr_tag_in_view)).get().toPose2d().getRotation().getDegrees() - 180;
+            // theta = layout.getTagPose((int)(curr_tag_in_view)).get().toPose2d().getRotation().getDegrees() - 180;
+            theta =0.1;
             isDone = false;
         }
+        
         
     }
   
     @Override
     public void execute() {
         var robotPose2d = poseProvider.get();
+        var robot_rot = s_Swerve.optimizeAngle(Rotation2d.fromDegrees(LimelightHelpers.getBotPose3d_TargetSpace("limelight").getRotation().toRotation2d().getDegrees()), Rotation2d.fromDegrees(theta));
         if (isDone){
             return;
         }
         // double delt = theta - robotPose2d.getRotation().getDegrees();
+
         double delt = s_Swerve.optimizeAngle(robotPose2d.getRotation(), Rotation2d.fromDegrees(theta));
-        System.out.println("ID: "+ curr_tag_in_view + " diff t: " + delt);
+        System.out.println("ID: "+ curr_tag_in_view + " diff t: " + robot_rot);
         // Output Volts is capped at 2 to prevent brownout
-        double thetaOutput = Math.min(moveThetaController.calculate(delt), 7);
+        double thetaOutput = Math.min(moveThetaController.calculate(robot_rot), 7);
         System.out.println("Theta output: " + thetaOutput);
         s_Swerve.drive(new Translation2d(0, 0), thetaOutput, true, true);
-        if (Math.abs(delt) < 3){
+        if (Math.abs(robot_rot) < 1){
             isDone = true;
         }
         else{
