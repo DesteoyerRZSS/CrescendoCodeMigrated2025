@@ -58,11 +58,11 @@ public class moveToOffset extends Command{
             }
             double tag_x = tag_pose.getX();
             double tag_y = tag_pose.getY();
-            Rotation2d tag_theta = tag_pose.getRotation().times(1);
-            double forward_offset = 2;
+            Rotation2d tag_theta = tag_pose.getRotation().plus(Rotation2d.fromDegrees(0));
+            double forward_offset = 1;
             double lateral_offset = 0;
-            double x_offset = tag_x + forward_offset * tag_theta.getSin() - lateral_offset * tag_theta.getCos();
-            double y_offset = tag_y + forward_offset * tag_theta.getCos() + lateral_offset * tag_theta.getSin();
+            double x_offset = tag_x + forward_offset * tag_theta.getSin() + lateral_offset * tag_theta.getCos();
+            double y_offset = tag_y - forward_offset * tag_theta.getCos() + lateral_offset * tag_theta.getSin();
             double diff_x = roboPose.getX() - x_offset;
             double diff_y = roboPose.getY() - y_offset;
             System.out.println("x_diff"+ diff_x + "y_dff" + diff_y + "angle" + roboPose.getRotation().minus(tag_pose.getRotation()).getDegrees());
