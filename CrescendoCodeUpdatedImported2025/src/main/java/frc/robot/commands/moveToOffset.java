@@ -53,14 +53,16 @@ public class moveToOffset extends Command{
             Pose2d tag_pose = new Pose2d();
             if (curr_tag_in_view > 0){
                 tag_pose = layout.getTagPose((int)(curr_tag_in_view)).get().toPose2d();
-            }
-            System.out.println("x_diff"+ (roboPose.getX() - tag_pose.getX()) + "y_dff" + (roboPose.getY() - tag_pose.getY()) + "angle" + roboPose.getRotation().minus(tag_pose.getRotation()).getDegrees());
 
-            double diff_x = LimelightHelpers.getBotPose3d_TargetSpace("limelight").toPose2d().getX();
-            double diff_y = LimelightHelpers.getBotPose3d_TargetSpace("limelight").toPose2d().getY();
-            System.out.println("HEEEYEEYYEYEYE: " + diff_x + "and"+ diff_y);
-            x = roboPose.getX() - diff_x;//amount_offset[0];
-            y = roboPose.getY() - diff_y + 0.5;//amount_offset[1];
+            }
+            double diff_x = roboPose.getX() - tag_pose.getX();
+            double diff_y = roboPose.getY() - tag_pose.getY();
+            System.out.println("x_diff"+ diff_x + "y_dff" + diff_y + "angle" + roboPose.getRotation().minus(tag_pose.getRotation()).getDegrees());
+
+            // System.out.println("HEEEYEEYYEYEYE: " + diff_x + "and"+ diff_y);
+            x = tag_pose.getX();
+            y = tag_pose.getY();
+
         }
         
         
@@ -79,7 +81,7 @@ public class moveToOffset extends Command{
         // Output Volts is capped at 2 to prevent brownout
         double xOutput = Math.min(moveXController.calculate(-1*delx), 1);
         double yOutput = Math.min(moveYController.calculate(-1*dely), 1);
-        // s_Swerve.drive(new Translation2d(xOutput, yOutput), 0, true, true);
+        s_Swerve.drive(new Translation2d(xOutput, yOutput), 0, true, true);
         if (Math.abs(delx) < 0.05 && Math.abs(dely) < 0.05){
             isDone = true;
         }

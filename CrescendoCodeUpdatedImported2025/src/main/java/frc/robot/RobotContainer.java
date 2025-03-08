@@ -21,7 +21,6 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.commands.TeleopSwerve;
 import frc.robot.commands.TurnToNearestApriltagCommand;
-import frc.robot.commands.moveToNearestApriltagCommand;
 import frc.robot.commands.moveToNearestApriltagTargetR;
 import frc.robot.commands.moveToOffset;
 import frc.robot.subsystems.Swerve;
@@ -65,7 +64,6 @@ public class RobotContainer {
   private final Swerve s_Swerve = new Swerve();
   private final Intake intake = new Intake();  
   //private final aimAtTarget aimCommand = new aimAtTarget(cam, s_Swerve, s_Swerve::getPose);
-  private final moveToNearestApriltagCommand translateApriltag = new moveToNearestApriltagCommand(s_Swerve, s_Swerve::getPose, 0);
   private final moveToNearestApriltagTargetR translateApriltag2 = new moveToNearestApriltagTargetR(s_Swerve, s_Swerve::getPose, 1);
   private final TurnToNearestApriltagCommand turnApriltag = new TurnToNearestApriltagCommand(s_Swerve, s_Swerve::getPose);
     /* The container for the robot. subsystems, OI devices, and commands. */

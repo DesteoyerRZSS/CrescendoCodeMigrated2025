@@ -240,7 +240,7 @@ public class Swerve extends SubsystemBase {
           (Math.abs(optimizeAngle(getYaw(), turn_rotation)/totalDiff) < 0.05) 
       )).andThen(()->{preciseTargeting = false;});
   }
-  public double[] get_xy_from_tag(Pose3d layoutpose3d, double offset){
+  public Pose2d get_xy_from_tag(Pose3d layoutpose3d, double offset){
     Rotation2d target_rotation = layoutpose3d.getRotation().toRotation2d().plus(Rotation2d.fromDegrees(0));
     double offset_x = offset * target_rotation.getCos();
     double offset_y = offset * target_rotation.getCos();
@@ -248,63 +248,10 @@ public class Swerve extends SubsystemBase {
     offset_y += 0.5 * target_rotation.plus(Rotation2d.fromDegrees(-90)).getSin();
     double x = layoutpose3d.getX() + offset_x;
     double y = layoutpose3d.getY() + offset_y;
-    return new double[]{x, y};
+    return new Pose2d(x, y, target_rotation);
   }
   public void togglePreciseTargeting(boolean val){
     preciseTargeting = val;
-  }
-  public Command move_to_nearest_apriltag(double offset_length){
-    
-    // if (is_tag_present != 0){
-    //   System.out.println("tag update:" + preciseTargeting);
-    //   target = layout.getTagPose((int)(curr_tag_in_view)).get();
-    //   target_rotation = target.getRotation().toRotation2d().plus(Rotation2d.fromDegrees(0));
-    //   double offset_x = offset_length * target_rotation.getCos();
-    //   double offset_y = offset_length * target_rotation.getCos();
-    //   // offset_x += 0.5 * target_rotation.plus(Rotation2d.fromDegrees(-90)).getCos();
-    //   offset_y += 0.5 * target_rotation.plus(Rotation2d.fromDegrees(-90)).getSin();
-    //   if (lr){
-    //     x = target.getX() + offset_x;
-    //     y = target.getY() + offset_y;
-    //   }else{
-    //     x = target.getX() - offset_x;
-    //     y = target.getY() - offset_y;
-    //   }
-
-    // }
-    // else{
-    //   return runOnce(()->{System.out.println("no apriltags detected");});
-    // }
-
-    PIDController moveXController = new PIDController(0.5, 0, 0);
-    PIDController moveYController = new PIDController(0.5, 0, 0);
-    return run(
-      () -> {
-        preciseTargeting = true;
-        curr_tag_in_view = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tid").getInteger(-1);
-        double[] xy;
-        if (curr_tag_in_view >= 0){
-          xy = get_xy_from_tag(layout.getTagPose((int)(curr_tag_in_view)).get(), offset_length);
-        }
-        else{
-          xy = new double[]{getPose().getX(), getPose().getY()};
-          System.out.println("no apriltag");
-        }
-        double x = xy[0];
-        double y = xy[1];
-        System.out.println(curr_tag_in_view);
-        System.out.println("current x = " + getPose().getX());
-        System.out.println(x - getPose().getX());
-        double xOutput = Math.min(moveXController.calculate(-1*x+ getPose().getX()), 2);
-        double yOutput = Math.min(moveYController.calculate(-1*y + getPose().getY()), 2);
-        drive(new Translation2d(xOutput, yOutput), 0, true, true);
-      }
-    ).until(
-      ()->(
-        ((Math.abs(get_xy_from_tag(layout.getTagPose((int)(curr_tag_in_view)).get(), offset_length)[0] - getPose().getX())) < 0.05) && 
-        ((Math.abs(get_xy_from_tag(layout.getTagPose((int)(curr_tag_in_view)).get(), offset_length)[1] - getPose().getY())) < 0.05)
-        )
-    ).andThen(()->{preciseTargeting = false;});
   }
   
   public double optimizeAngle(Rotation2d currentAngle, Rotation2d targetAngle){
